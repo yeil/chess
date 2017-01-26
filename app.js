@@ -319,7 +319,7 @@ chessApp.controller("chessCtrl", function($scope) {
 
   function movePiece(selectedSquare, square) {    
     if (selectedSquare.identity === KING && whiteCastleRight && square.x === 6 && square.y === 7) {
-      castleTest(selectedSquare, square);
+      castleTest(selectedSquare);
       square.player = WHITE;
       square.identity = KING;
       $scope.board[7][5].player = WHITE;
@@ -330,7 +330,7 @@ chessApp.controller("chessCtrl", function($scope) {
       $scope.board[7][7].identity = null;
       $scope.player = $scope.player === WHITE ? BLACK : WHITE;
     } else if (selectedSquare.identity === KING && whiteCastleLeft && square.x === 2 && square.y === 7) {
-      castleTest(selectedSquare, square);
+      castleTest(selectedSquare);
       square.player = WHITE;
       square.identity = KING;
       $scope.board[7][3].player = WHITE;
@@ -341,7 +341,7 @@ chessApp.controller("chessCtrl", function($scope) {
       $scope.board[7][0].identity = null;
       $scope.player = $scope.player === WHITE ? BLACK : WHITE;
     } else if (selectedSquare.identity === KING && blackCastleRight && square.x === 6 && square.y === 0) {
-      castleTest(selectedSquare, square);
+      castleTest(selectedSquare);
       square.player = BLACK;
       square.identity = KING;
       $scope.board[0][5].player = BLACK;
@@ -352,7 +352,7 @@ chessApp.controller("chessCtrl", function($scope) {
       $scope.board[0][7].identity = null;
       $scope.player = $scope.player === WHITE ? BLACK : WHITE;
     } else if (selectedSquare.identity === KING && blackCastleRight && square.x === 2 && square.y === 0) {
-      castleTest(selectedSquare, square);
+      castleTest(selectedSquare);
       square.player = BLACK;
       square.identity = KING;
       $scope.board[0][3].player = BLACK;
@@ -391,6 +391,7 @@ chessApp.controller("chessCtrl", function($scope) {
       selectedSquare.player = null;
       $scope.player = $scope.player === WHITE ? BLACK : WHITE;
     } else {
+    castleTest(selectedSquare);
     square.identity = selectedSquare.identity;
     square.player = selectedSquare.player;
     selectedSquare.identity = null;
