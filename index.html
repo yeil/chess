@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en-us" ng-app="chessApp">
+<head>
+    <title>Play Chess!</title>
+    <meta charset="UTF-8">
+    <link href="https://fonts.googleapis.com/css?family=Noto+Sans" rel="stylesheet">
+    <link type="text/css" rel="stylesheet" href="stylesheet.css"/>
+</head>
+
+<body ng-controller="chessCtrl">
+    <div class="game-container">
+        <div class="game-board">
+            <div class="row" ng-repeat="row in board">
+                <div class="square" ng-style="setClass(square)" ng-repeat="square in row track by $index" ng-click="select(square)">
+                    <div class="piece" ng-style="setStyling(square)"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="captured-gallery">
+            <div class="black-captured-area">
+                <div class="black-captured-pieces">
+                    <div class="black-captured-piece" ng-repeat="captured in blackCaptured" ng-style="setStyling(captured)"></div>
+                </div>
+                <div class="black-captured-title"><span>Player 2</span></div>
+            </div>
+
+            <div class="player-turn">Player Turn: {{player}}</div>
+
+            <div class="white-captured-area">
+                <div class="white-captured-title"><span>Player 1</span></div>
+                <div class="white-captured-pieces">
+                    <div class="white-captured-piece" ng-repeat="captured in whiteCaptured" ng-style="setStyling(captured)"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+
+    <script src="https://code.angularjs.org/1.6.1/angular.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

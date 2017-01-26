@@ -1,0 +1,134 @@
+* {
+  box-sizing: border-box;
+  font-family: 'Noto Sans', sans-serif;
+}
+
+.game-container {
+  width: 834px;
+  height: 524px;
+  background-color: turquoise;
+  margin: 0 auto;
+  padding-top: 22px;
+  padding-left: 22px;
+}
+
+.game-board {
+  width: 480px;
+  height: 480px;
+  border-top: 1px solid black;
+  display: inline-block;
+}
+
+.square {
+  display: inline-block;
+  width: 60px;
+  height: 60px;
+  margin-bottom: -5px;
+  border-bottom: 1px solid black;
+  border-left: 1px solid black;
+}
+
+.square:last-child {
+  border-right: 1px solid black;
+}
+
+.square:hover {
+  cursor: pointer;
+  opacity: .8;
+}
+
+.piece {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  right: 1px;
+}
+
+.captured-gallery {
+  width: 300px;
+  height: 481px;
+  display: inline-flex;
+  margin-left: 10px;
+  flex-direction: column;
+  vertical-align: top;
+  justify-content: space-between;
+}
+
+.player-turn {
+  font-weight: bold;
+}
+
+.black-captured-area {
+  width: 100%;
+  height: 30%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.black-captured-title {
+  height: 20%;
+  width: 50%;
+  background-color: black;
+  border-radius: 20px;
+  text-align: center;
+  margin: 0 auto;
+  display: table;
+}
+
+.black-captured-title > * {
+  vertical-align: bottom;
+  display: table-cell;
+  position: relative;
+  bottom: 3px;
+  color: white;
+}
+
+.black-captured-pieces {
+  height: 70%;
+  width: 100%;
+  display: inline-flex;
+  align-items: flex-end;
+}
+
+.black-captured-piece {
+  width: 30px;
+  height: 30px;
+  background-repeat: no-repeat;
+  background-size: cover;
+  display: inline-block;
+}
+
+.white-captured-area {
+  width: 100%;
+  height: 30%;
+}
+
+.white-captured-title {
+  height: 20%;
+  width: 50%;
+  background-color: white;
+  border-radius: 20px;
+  text-align: center;
+  margin: 0 auto;
+  display: table;
+}
+
+.white-captured-title > * {
+  vertical-align: bottom;
+  display: table-cell;
+  position: relative;
+  bottom: 3px;
+}
+
+.white-captured-pieces {
+  height: 70%;
+}
+
+.white-captured-piece {
+  width: 30px;
+  height: 30px;
+  background-repeat: no-repeat;
+  background-size: cover;
+  display: inline-block;
+}
