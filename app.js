@@ -2,10 +2,38 @@
 var chessApp = angular.module("chessApp", []);
 
 // CONTROLLERS
-chessApp.controller("chessCtrl", function($scope) {
-  var WHITE = "White", BLACK = "Black", BOARD_WIDTH = 8, PAWN = "Pawn", ROOK = "Rook", KNIGHT = "Knight", BISHOP = "Bishop", QUEEN = "Queen", KING = "King", repeat, selectedSquare = null, checkIdentity, checkPlayer, blackCastleLeft = true, blackCastleRight = true, whiteCastleLeft = true, whiteCastleRight = true, previousSquare, previousSelected, previousFunc;
+chessApp.controller("chessCtrl", function($scope, $timeout) {
+  
+  var WHITE = "White";
+  var BLACK = "Black";
+  
+  var BOARD_WIDTH = 8;
 
-  $scope.whiteCaptured = [], $scope.blackCaptured = [];
+  var PAWN = "Pawn";
+  var ROOK = "Rook";
+  var KNIGHT = "Knight";
+  var BISHOP = "Bishop";
+  var QUEEN = "Queen";
+  var KING = "King";
+  
+  var repeat;
+  var selectedSquare = null;
+  var checkIdentity;
+  var checkPlayer;
+  var blackDefenseChoices = [];
+  var whiteDefenseChoices = [];
+
+  var blackCastleLeft = true;
+  var blackCastleRight = true;
+  var whiteCastleLeft = true;
+  var whiteCastleRight = true;
+  
+  var previousSquare;
+  var previousSelected;
+  var previousFunc;
+
+  $scope.whiteCaptured = [];
+  $scope.blackCaptured = [];
 
   function Piece(player, x, y, identity) {
     this.player = player;
@@ -159,8 +187,88 @@ chessApp.controller("chessCtrl", function($scope) {
         //INDIRECT CHECK
         checkTest();
         previousSquare = square;
+        //CHECKMATE TEST
+        var king = kingFinder();
+        if (king.isCheck) {
+          mateTest(king);
+        }
       }
     }
+  }
+
+  function mateTest(king) {
+    var count = 0;
+    var checkCount = 0;
+    for (var i = -1; i <= 1; i++) {
+      for (var j = -1; j <= 1; j++) {
+        if ($scope.board[king.y + i] && $scope.board[king.y + i][king.x + j].player !== $scope.player) {
+          count++;
+          kingMove = $scope.board[king.y + i][king.x + j];
+          if (!isPin(king, kingMove)) {
+            checkCount++;
+          }
+        }
+      }
+    }
+    if (checkCount === count) {
+      mateTest2();
+    }
+  }
+
+  function mateTest2() {
+    var defenseChoices = $scope.player === WHITE ? whiteDefenseChoices : blackDefenseChoices;
+    var count = 0;
+    var checkCount = 0;
+
+    for (var i = 0; i < BOARD_WIDTH; i++) {
+      for (var j = 0; j < BOARD_WIDTH; j++) {
+        if ($scope.board[i][j].identity && $scope.board[i][j].player === $scope.player && $scope.board[i][j] !== KING ) {
+          count++;
+          var currentSquare = $scope.board[i][j];
+          defenseChoices.length = 0;
+          checkIdentity = $scope.board[i][j].identity;
+          checkPlayer = $scope.board[i][j].player;
+          setChoices($scope.board[i][j].x, $scope.board[i][j].y);
+          if (mateTest3(currentSquare, defenseChoices)) {
+            checkCount++;
+          };
+          resetChoices();
+          checkIdentity = null;
+          checkPlayer = null;
+        }
+      }
+    }
+    if (checkCount === count && count !== 0 && checkCount !== 0) {
+      $timeout(function () {
+        alert('Checkmate');
+      }, 50);
+      var attackingPlayer = $scope.player === WHITE ? BLACK : WHITE;
+      $scope.player = attackingPlayer + ' wins!';
+    }
+  }
+
+  function mateTest3(currentSquare, defenseChoices) {
+    var king = kingFinder();
+    kingState = king.isCheck;
+
+    for (var i = 0; i < defenseChoices.length; i++) {
+      var holdIdentity = defenseChoices[i].identity;
+      var holdPlayer = defenseChoices[i].player;
+      defenseChoices[i].identity = currentSquare.identity;
+      defenseChoices[i].player = currentSquare.player;
+      king.isCheck = false;
+      checkTest()
+      if (king.isCheck === false) {
+        defenseChoices[i].identity = holdIdentity;
+        defenseChoices[i].player = holdPlayer;
+        king.isCheck = kingState;
+        return false;
+      }
+      defenseChoices[i].identity = holdIdentity;
+      defenseChoices[i].player = holdPlayer;
+    }
+    king.isCheck = kingState;
+    return true;
   }
 
   function checkTest() {
@@ -187,25 +295,6 @@ chessApp.controller("chessCtrl", function($scope) {
     selectedSquare = selectedHolder;
     selectedSquare.identity = selectedIdentity;
     selectedSquare.player = selectedPlayer;
-  }
-
-  function resetChoices() {
-    for (var i = 0; i < BOARD_WIDTH; i++) {
-      for (var j = 0; j < BOARD_WIDTH; j++) {
-        $scope.board[i][j].isChoice = false;
-        $scope.board[i][j].isPiece = false;
-      }
-    }
-  }
-
-  function kingFinder() {
-    for (var i = 0; i < BOARD_WIDTH; i++) {
-      for (var j = 0; j < BOARD_WIDTH; j++) {
-        if ($scope.board[i][j].identity === KING && $scope.player === $scope.board[i][j].player) {
-          return $scope.board[i][j];
-        }
-      }
-    }
   }
 
   function isPin(selectedSquare, square) {
@@ -253,6 +342,25 @@ chessApp.controller("chessCtrl", function($scope) {
     return true;
   }
 
+  function resetChoices() {
+    for (var i = 0; i < BOARD_WIDTH; i++) {
+      for (var j = 0; j < BOARD_WIDTH; j++) {
+        $scope.board[i][j].isChoice = false;
+        $scope.board[i][j].isPiece = false;
+      }
+    }
+  }
+
+  function kingFinder() {
+    for (var i = 0; i < BOARD_WIDTH; i++) {
+      for (var j = 0; j < BOARD_WIDTH; j++) {
+        if ($scope.board[i][j].identity === KING && $scope.player === $scope.board[i][j].player) {
+          return $scope.board[i][j];
+        }
+      }
+    }
+  }
+
   function repeatCheck(square) {
     if (repeat === square) {
       resetChoices();
@@ -271,6 +379,7 @@ chessApp.controller("chessCtrl", function($scope) {
         blackCastleRight = false;
       }
       var prisoner = new Captured(square.player, square.identity);
+      captureValue(prisoner);
       $scope.whiteCaptured.push(prisoner);
     } else if (square.player === WHITE) {
       if (square.identity === ROOK && square.x === 0) {
@@ -280,17 +389,44 @@ chessApp.controller("chessCtrl", function($scope) {
         whiteCastleRight = false;
       }
       var prisoner = new Captured(square.player, square.identity);
+      captureValue(prisoner);
       $scope.blackCaptured.push(prisoner);
     }
     if (square.player === null) {
       if (selectedSquare.player === WHITE && selectedSquare.identity === PAWN && selectedSquare.y === 3 && previousSquare.identity === PAWN && previousSquare.y === 3 && previousSquare.x === square.x) {
         var prisoner = new Captured(previousSquare.player, previousSquare.identity);
+        captureValue(prisoner);
         $scope.whiteCaptured.push(prisoner);
       } else if (selectedSquare.player === BLACK && selectedSquare.identity === PAWN && selectedSquare.y === 4 && previousSquare.identity === PAWN && previousSquare.y === 4 && previousSquare.x === square.x) {
         var prisoner = new Captured(previousSquare.player, previousSquare.identity);
+        captureValue(prisoner);
         $scope.blackCaptured.push(prisoner);
       }
     }
+    capturedSort();
+  }
+
+  function captureValue(prisoner) {
+    if (prisoner.identity === PAWN) {
+      prisoner.value = 1;
+    } else if (prisoner.identity === KNIGHT) {
+      prisoner.value = 3;
+    } else if (prisoner.identity === BISHOP) {
+      prisoner.value = 3;
+    } else if (prisoner.identity === ROOK) {
+      prisoner.value = 5;
+    } else if (prisoner.identity === QUEEN) {
+      prisoner.value = 9;
+    }
+  }
+
+  function capturedSort() {
+    $scope.whiteCaptured.sort(function(a, b) {
+      return a.value - b.value;
+    });
+    $scope.blackCaptured.sort(function(a, b) {
+      return a.value - b.value;
+    });
   }
 
   function castleTest(selectedSquare, square) {
@@ -409,10 +545,12 @@ chessApp.controller("chessCtrl", function($scope) {
         if (y === BOARD_WIDTH - 2 && !$scope.board[y - 1][x].player && !$scope.board[y - 2][x].player) {
           var highlight = $scope.board[y - 2][x];
           highlight.isChoice = true;
+          whiteDefenseChoices.push(highlight);
         }
         if (!$scope.board[y - 1][x].player) {
           var highlight = $scope.board[y - 1][x];
           highlight.isChoice = true;
+          whiteDefenseChoices.push(highlight);
         }
         //CAPTURE
         if (x > 0 && $scope.board[y - 1][x - 1].player === BLACK) {
@@ -422,6 +560,7 @@ chessApp.controller("chessCtrl", function($scope) {
           }
           var highlight = $scope.board[y - 1][x - 1];
           highlight.isChoice = true;
+          whiteDefenseChoices.push(highlight);
         }
         if (x < BOARD_WIDTH - 1 && $scope.board[y - 1][x + 1].player === BLACK) {
           if ($scope.board[y - 1][x + 1].identity === KING) {
@@ -430,15 +569,18 @@ chessApp.controller("chessCtrl", function($scope) {
           }
           var highlight = $scope.board[y - 1][x + 1];
           highlight.isChoice = true;
+          whiteDefenseChoices.push(highlight);
         }
         //EN PASSANT        
         if (selectedSquare.y === 3 && previousSelected.y === 1 && previousSelected.identity === PAWN && previousSquare === $scope.board[y][x + 1]) {
           var highlight = $scope.board[y - 1][x + 1];
           highlight.isChoice = true;
+          whiteDefenseChoices.push(highlight);
         }
         if (selectedSquare.y === 3 && previousSelected.y === 1 && previousSelected.identity === PAWN && previousSquare === $scope.board[y][x - 1]) {
           var highlight = $scope.board[y - 1][x - 1];
           highlight.isChoice = true;
+          whiteDefenseChoices.push(highlight);
         }
       }
 
@@ -457,6 +599,7 @@ chessApp.controller("chessCtrl", function($scope) {
           if ($scope.board[y - 2][x - 1].player === null) {
             var highlight = $scope.board[y - 2][x - 1];
             highlight.isChoice = true;
+            whiteDefenseChoices.push(highlight);
           }
         }
         //TOP RIGHT
@@ -473,6 +616,7 @@ chessApp.controller("chessCtrl", function($scope) {
           if ($scope.board[y - 2][x + 1].player === null) {
             var highlight = $scope.board[y - 2][x + 1];
             highlight.isChoice = true;
+            whiteDefenseChoices.push(highlight);
           }
         }
         //LEFT UPPER
@@ -489,6 +633,7 @@ chessApp.controller("chessCtrl", function($scope) {
           if ($scope.board[y - 1][x - 2].player === null) {
             var highlight = $scope.board[y - 1][x - 2];
             highlight.isChoice = true;
+            whiteDefenseChoices.push(highlight);
           }
         }
         //LEFT LOWER
@@ -505,6 +650,7 @@ chessApp.controller("chessCtrl", function($scope) {
           if ($scope.board[y + 1][x - 2].player === null) {
             var highlight = $scope.board[y + 1][x - 2];
             highlight.isChoice = true;
+            whiteDefenseChoices.push(highlight);
           }
         }
         //RIGHT UPPER
@@ -521,6 +667,7 @@ chessApp.controller("chessCtrl", function($scope) {
           if ($scope.board[y - 1][x + 2].player === null) {
             var highlight = $scope.board[y - 1][x + 2];
             highlight.isChoice = true;
+            whiteDefenseChoices.push(highlight);
           }
         }
         //RIGHT LOWER
@@ -537,6 +684,7 @@ chessApp.controller("chessCtrl", function($scope) {
           if ($scope.board[y + 1][x + 2].player === null) {
             var highlight = $scope.board[y + 1][x + 2];
             highlight.isChoice = true;
+            whiteDefenseChoices.push(highlight);
           }
         }
         //BOTTOM LEFT
@@ -553,6 +701,7 @@ chessApp.controller("chessCtrl", function($scope) {
           if ($scope.board[y + 2][x - 1].player === null) {
             var highlight = $scope.board[y + 2][x - 1];
             highlight.isChoice = true;
+            whiteDefenseChoices.push(highlight);
           }
         }
         //BOTTOM RIGHT
@@ -569,6 +718,7 @@ chessApp.controller("chessCtrl", function($scope) {
           if ($scope.board[y + 2][x + 1].player === null) {
             var highlight = $scope.board[y + 2][x + 1];
             highlight.isChoice = true;
+            whiteDefenseChoices.push(highlight);
           }
         }
 
@@ -585,12 +735,14 @@ chessApp.controller("chessCtrl", function($scope) {
               }
               var highlight = $scope.board[y - i][x - i];
               highlight.isChoice = true;
+              whiteDefenseChoices.push(highlight);
               break;
             } else if ($scope.board[y - i][x - i].player === WHITE) {
               break;
             }
             var highlight = $scope.board[y - i][x - i];
             highlight.isChoice = true;
+            whiteDefenseChoices.push(highlight);
           }
         }
         //UPPER RIGHT
@@ -603,12 +755,14 @@ chessApp.controller("chessCtrl", function($scope) {
               }
               var highlight = $scope.board[y - i][x + i];
               highlight.isChoice = true;
+              whiteDefenseChoices.push(highlight);
               break;
             } else if ($scope.board[y - i][x + i].player === WHITE) {
               break;
             }
             var highlight = $scope.board[y - i][x + i];
             highlight.isChoice = true;
+            whiteDefenseChoices.push(highlight);
           }
         }
         //LOWER LEFT
@@ -621,12 +775,14 @@ chessApp.controller("chessCtrl", function($scope) {
               }              
               var highlight = $scope.board[y + i][x - i];
               highlight.isChoice = true;
+              whiteDefenseChoices.push(highlight);
               break;
             } else if ($scope.board[y + i][x - i].player === WHITE) {
               break;
             }
             var highlight = $scope.board[y + i][x - i];
             highlight.isChoice = true;
+            whiteDefenseChoices.push(highlight);
           }
         }
         //LOWER RIGHT
@@ -639,12 +795,14 @@ chessApp.controller("chessCtrl", function($scope) {
               }
               var highlight = $scope.board[y + i][x + i];
               highlight.isChoice = true;
+              whiteDefenseChoices.push(highlight);
               break;
             } else if ($scope.board[y + i][x + i].player === WHITE) {
               break;
             }
             var highlight = $scope.board[y + i][x + i];
             highlight.isChoice = true;
+            whiteDefenseChoices.push(highlight);
           }
         }
       }
@@ -660,12 +818,14 @@ chessApp.controller("chessCtrl", function($scope) {
               }
               var highlight = $scope.board[y - i][x];
               highlight.isChoice = true;
+              whiteDefenseChoices.push(highlight);
               break;
             } else if ($scope.board[y - i][x].player === WHITE) {
               break;
             }
             var highlight = $scope.board[y - i][x];
             highlight.isChoice = true;
+            whiteDefenseChoices.push(highlight);
           }
         }
         //LEFT
@@ -678,12 +838,14 @@ chessApp.controller("chessCtrl", function($scope) {
               }
               var highlight = $scope.board[y][x - i];
               highlight.isChoice = true;
+              whiteDefenseChoices.push(highlight);
               break;
             } else if ($scope.board[y][x - i].player === WHITE) {
               break;
             }
             var highlight = $scope.board[y][x - i];
             highlight.isChoice = true;
+            whiteDefenseChoices.push(highlight);
           }
         }
         //RIGHT
@@ -696,12 +858,14 @@ chessApp.controller("chessCtrl", function($scope) {
               }
               var highlight = $scope.board[y][x + i];
               highlight.isChoice = true;
+              whiteDefenseChoices.push(highlight);
               break;
             } else if ($scope.board[y][x + i].player === WHITE) {
               break;
             }
             var highlight = $scope.board[y][x + i];
             highlight.isChoice = true;
+            whiteDefenseChoices.push(highlight);
           }
         }
         //DOWN
@@ -714,12 +878,14 @@ chessApp.controller("chessCtrl", function($scope) {
               }
               var highlight = $scope.board[y + i][x];
               highlight.isChoice = true;
+              whiteDefenseChoices.push(highlight);
               break;
             } else if ($scope.board[y + i][x].player === WHITE) {
               break;
             }
             var highlight = $scope.board[y + i][x];
             highlight.isChoice = true;
+            whiteDefenseChoices.push(highlight);
           }
         }
       }
@@ -735,12 +901,14 @@ chessApp.controller("chessCtrl", function($scope) {
               }
               var highlight = $scope.board[y - i][x - i];
               highlight.isChoice = true;
+              whiteDefenseChoices.push(highlight);
               break;
             } else if ($scope.board[y - i][x - i].player === WHITE) {
               break;
             }
             var highlight = $scope.board[y - i][x - i];
             highlight.isChoice = true;
+            whiteDefenseChoices.push(highlight);
           }
         }
         //UP
@@ -753,12 +921,14 @@ chessApp.controller("chessCtrl", function($scope) {
               }
               var highlight = $scope.board[y - i][x];
               highlight.isChoice = true;
+              whiteDefenseChoices.push(highlight);
               break;
             } else if ($scope.board[y - i][x].player === WHITE) {
               break;
             }
             var highlight = $scope.board[y - i][x];
             highlight.isChoice = true;
+            whiteDefenseChoices.push(highlight);
           }
         }
         //UPPER RIGHT
@@ -771,12 +941,14 @@ chessApp.controller("chessCtrl", function($scope) {
               }
               var highlight = $scope.board[y - i][x + i];
               highlight.isChoice = true;
+              whiteDefenseChoices.push(highlight);
               break;
             } else if ($scope.board[y - i][x + i].player === WHITE) {
               break;
             }
             var highlight = $scope.board[y - i][x + i];
             highlight.isChoice = true;
+            whiteDefenseChoices.push(highlight);
           }
         }
         //RIGHT
@@ -789,12 +961,14 @@ chessApp.controller("chessCtrl", function($scope) {
               }
               var highlight = $scope.board[y][x + i];
               highlight.isChoice = true;
+              whiteDefenseChoices.push(highlight);
               break;
             } else if ($scope.board[y][x + i].player === WHITE) {
               break;
             }
             var highlight = $scope.board[y][x + i];
             highlight.isChoice = true;
+            whiteDefenseChoices.push(highlight);
           }
         }
         //LOWER RIGHT
@@ -807,12 +981,14 @@ chessApp.controller("chessCtrl", function($scope) {
               }
               var highlight = $scope.board[y + i][x + i];
               highlight.isChoice = true;
+              whiteDefenseChoices.push(highlight);
               break;
             } else if ($scope.board[y + i][x + i].player === WHITE) {
               break;
             }
             var highlight = $scope.board[y + i][x + i];
             highlight.isChoice = true;
+            whiteDefenseChoices.push(highlight);
           }
         }
         //DOWN
@@ -825,12 +1001,14 @@ chessApp.controller("chessCtrl", function($scope) {
               }
               var highlight = $scope.board[y + i][x];
               highlight.isChoice = true;
+              whiteDefenseChoices.push(highlight);
               break;
             } else if ($scope.board[y + i][x].player === WHITE) {
               break;
             }
             var highlight = $scope.board[y + i][x];
             highlight.isChoice = true;
+            whiteDefenseChoices.push(highlight);
           }
         }
         //LOWER LEFT
@@ -843,12 +1021,14 @@ chessApp.controller("chessCtrl", function($scope) {
               }              
               var highlight = $scope.board[y + i][x - i];
               highlight.isChoice = true;
+              whiteDefenseChoices.push(highlight);
               break;
             } else if ($scope.board[y + i][x - i].player === WHITE) {
               break;
             }
             var highlight = $scope.board[y + i][x - i];
             highlight.isChoice = true;
+            whiteDefenseChoices.push(highlight);
           }
         }
         //LEFT
@@ -861,12 +1041,14 @@ chessApp.controller("chessCtrl", function($scope) {
               }
               var highlight = $scope.board[y][x - i];
               highlight.isChoice = true;
+              whiteDefenseChoices.push(highlight);
               break;
             } else if ($scope.board[y][x - i].player === WHITE) {
               break;
             }
             var highlight = $scope.board[y][x - i];
             highlight.isChoice = true;
+            whiteDefenseChoices.push(highlight);
           }
         }
       }
@@ -973,12 +1155,14 @@ chessApp.controller("chessCtrl", function($scope) {
     if (selectedSquare.player === BLACK || checkPlayer === BLACK) {
       if (selectedSquare.identity === PAWN || checkIdentity === PAWN) {
         if (y === 1 && !$scope.board[y + 1][x].player && !$scope.board[y + 2][x].player) {
-          var highlight2 = $scope.board[y + 2][x];
-          highlight2.isChoice = true;
+          var highlight = $scope.board[y + 2][x];
+          highlight.isChoice = true;
+          blackDefenseChoices.push(highlight);
         }
         if (!$scope.board[y + 1][x].player) {
           var highlight = $scope.board[y + 1][x];
           highlight.isChoice = true;
+          blackDefenseChoices.push(highlight);
         }
         //CAPTURE
         if (x > 0 && $scope.board[y + 1][x - 1].player === WHITE) {
@@ -986,25 +1170,29 @@ chessApp.controller("chessCtrl", function($scope) {
             var highlight = $scope.board[y + 1][x - 1];
             highlight.isCheck = true;
           }
-          var highlight3 = $scope.board[y + 1][x - 1];
-          highlight3.isChoice = true;
+          var highlight = $scope.board[y + 1][x - 1];
+          highlight.isChoice = true;
+          blackDefenseChoices.push(highlight);
         }
         if (x < BOARD_WIDTH - 1 && $scope.board[y + 1][x + 1].player === WHITE) {
           if ($scope.board[y + 1][x + 1].identity === KING) {
             var highlight = $scope.board[y + 1][x + 1];
             highlight.isCheck = true;
           }
-          var highlight4 = $scope.board[y + 1][x + 1];
-          highlight4.isChoice = true;
+          var highlight = $scope.board[y + 1][x + 1];
+          highlight.isChoice = true;
+          blackDefenseChoices.push(highlight);
         }
         //EN PASSANT        
         if (selectedSquare.y === 4 && previousSelected.y === 6 && previousSelected.identity === PAWN && previousSquare === $scope.board[y][x + 1]) {
           var highlight = $scope.board[y + 1][x + 1];
           highlight.isChoice = true;
+          blackDefenseChoices.push(highlight);
         }
         if (selectedSquare.y === 4 && previousSelected.y === 6 && previousSelected.identity === PAWN && previousSquare === $scope.board[y][x - 1]) {
           var highlight = $scope.board[y + 1][x - 1];
           highlight.isChoice = true;
+          blackDefenseChoices.push(highlight);
         }
       }
       
@@ -1018,11 +1206,13 @@ chessApp.controller("chessCtrl", function($scope) {
             } else {
               var highlight = $scope.board[y - 2][x - 1];
               highlight.isChoice = true;
+              blackDefenseChoices.push(highlight);
             }
           }
           if ($scope.board[y - 2][x - 1].player === null) {
             var highlight = $scope.board[y - 2][x - 1];
             highlight.isChoice = true;
+            blackDefenseChoices.push(highlight);
           }
         }
         //TOP RIGHT
@@ -1034,11 +1224,13 @@ chessApp.controller("chessCtrl", function($scope) {
             } else {
               var highlight = $scope.board[y - 2][x + 1];
               highlight.isChoice = true;
+              blackDefenseChoices.push(highlight);
             }
           }
           if ($scope.board[y - 2][x + 1].player === null) {
             var highlight = $scope.board[y - 2][x + 1];
             highlight.isChoice = true;
+            blackDefenseChoices.push(highlight);
           }
         }
         //LEFT UPPER
@@ -1050,11 +1242,13 @@ chessApp.controller("chessCtrl", function($scope) {
             } else {
               var highlight = $scope.board[y - 1][x - 2];
               highlight.isChoice = true;
+              blackDefenseChoices.push(highlight);
             }
           }
           if ($scope.board[y - 1][x - 2].player === null) {
             var highlight = $scope.board[y - 1][x - 2];
             highlight.isChoice = true;
+            blackDefenseChoices.push(highlight);
           }
         }
         //LEFT LOWER
@@ -1066,11 +1260,13 @@ chessApp.controller("chessCtrl", function($scope) {
             } else {
               var highlight = $scope.board[y + 1][x - 2];
               highlight.isChoice = true;
+              blackDefenseChoices.push(highlight);
             }
           }
           if ($scope.board[y + 1][x - 2].player === null) {
             var highlight = $scope.board[y + 1][x - 2];
             highlight.isChoice = true;
+            blackDefenseChoices.push(highlight);
           }
         }
         //RIGHT UPPER
@@ -1082,11 +1278,13 @@ chessApp.controller("chessCtrl", function($scope) {
             } else {
               var highlight = $scope.board[y - 1][x + 2];
               highlight.isChoice = true;
+              blackDefenseChoices.push(highlight);
             }
           }
           if ($scope.board[y - 1][x + 2].player === null) {
             var highlight = $scope.board[y - 1][x + 2];
             highlight.isChoice = true;
+            blackDefenseChoices.push(highlight);
           }
         }
         //RIGHT LOWER
@@ -1098,11 +1296,13 @@ chessApp.controller("chessCtrl", function($scope) {
             } else {
               var highlight = $scope.board[y + 1][x + 2];
               highlight.isChoice = true;
+              blackDefenseChoices.push(highlight);
             }
           }
           if ($scope.board[y + 1][x + 2].player === null) {
             var highlight = $scope.board[y + 1][x + 2];
             highlight.isChoice = true;
+            blackDefenseChoices.push(highlight);
           }
         }
         //BOTTOM LEFT
@@ -1114,11 +1314,13 @@ chessApp.controller("chessCtrl", function($scope) {
             } else {
               var highlight = $scope.board[y + 2][x - 1];
               highlight.isChoice = true;
+              blackDefenseChoices.push(highlight);
             }
           }
           if ($scope.board[y + 2][x - 1].player === null) {
             var highlight = $scope.board[y + 2][x - 1];
             highlight.isChoice = true;
+            blackDefenseChoices.push(highlight);
           }
         }
         //BOTTOM RIGHT
@@ -1130,11 +1332,13 @@ chessApp.controller("chessCtrl", function($scope) {
             } else {
               var highlight = $scope.board[y + 2][x + 1];
               highlight.isChoice = true;
+              blackDefenseChoices.push(highlight);
             }
           }
           if ($scope.board[y + 2][x + 1].player === null) {
             var highlight = $scope.board[y + 2][x + 1];
             highlight.isChoice = true;
+            blackDefenseChoices.push(highlight);
           }
         }
       
@@ -1151,12 +1355,14 @@ chessApp.controller("chessCtrl", function($scope) {
               }
               var highlight = $scope.board[y - i][x - i];
               highlight.isChoice = true;
+              blackDefenseChoices.push(highlight);
               break;
             } else if ($scope.board[y - i][x - i].player === BLACK) {
               break;
             }
             var highlight = $scope.board[y - i][x - i];
             highlight.isChoice = true;
+            blackDefenseChoices.push(highlight);
           }
         }
         //UPPER RIGHT
@@ -1169,12 +1375,14 @@ chessApp.controller("chessCtrl", function($scope) {
               }
               var highlight = $scope.board[y - i][x + i];
               highlight.isChoice = true;
+              blackDefenseChoices.push(highlight);
               break;
             } else if ($scope.board[y - i][x + i].player === BLACK) {
               break;
             }
             var highlight = $scope.board[y - i][x + i];
             highlight.isChoice = true;
+            blackDefenseChoices.push(highlight);
           }
         }
         //LOWER LEFT
@@ -1187,12 +1395,14 @@ chessApp.controller("chessCtrl", function($scope) {
               }              
               var highlight = $scope.board[y + i][x - i];
               highlight.isChoice = true;
+              blackDefenseChoices.push(highlight);
               break;
             } else if ($scope.board[y + i][x - i].player === BLACK) {
               break;
             }
             var highlight = $scope.board[y + i][x - i];
             highlight.isChoice = true;
+            blackDefenseChoices.push(highlight);
           }
         }
         //LOWER RIGHT
@@ -1205,12 +1415,14 @@ chessApp.controller("chessCtrl", function($scope) {
               }
               var highlight = $scope.board[y + i][x + i];
               highlight.isChoice = true;
+              blackDefenseChoices.push(highlight);
               break;
             } else if ($scope.board[y + i][x + i].player === BLACK) {
               break;
             }
             var highlight = $scope.board[y + i][x + i];
             highlight.isChoice = true;
+            blackDefenseChoices.push(highlight);
           }
         }
       }
@@ -1226,12 +1438,14 @@ chessApp.controller("chessCtrl", function($scope) {
               }
               var highlight = $scope.board[y - i][x];
               highlight.isChoice = true;
+              blackDefenseChoices.push(highlight);
               break;
             } else if ($scope.board[y - i][x].player === BLACK) {
               break;
             }
             var highlight = $scope.board[y - i][x];
             highlight.isChoice = true;
+            blackDefenseChoices.push(highlight);
           }
         }
         //LEFT
@@ -1244,12 +1458,14 @@ chessApp.controller("chessCtrl", function($scope) {
               }
               var highlight = $scope.board[y][x - i];
               highlight.isChoice = true;
+              blackDefenseChoices.push(highlight);
               break;
             } else if ($scope.board[y][x - i].player === BLACK) {
               break;
             }
             var highlight = $scope.board[y][x - i];
             highlight.isChoice = true;
+            blackDefenseChoices.push(highlight);
           }
         }
         //RIGHT
@@ -1262,12 +1478,14 @@ chessApp.controller("chessCtrl", function($scope) {
               }
               var highlight = $scope.board[y][x + i];
               highlight.isChoice = true;
+              blackDefenseChoices.push(highlight);
               break;
             } else if ($scope.board[y][x + i].player === BLACK) {
               break;
             }
             var highlight = $scope.board[y][x + i];
             highlight.isChoice = true;
+            blackDefenseChoices.push(highlight);
           }
         }
         //DOWN
@@ -1280,12 +1498,14 @@ chessApp.controller("chessCtrl", function($scope) {
               }
               var highlight = $scope.board[y + i][x];
               highlight.isChoice = true;
+              blackDefenseChoices.push(highlight);
               break;
             } else if ($scope.board[y + i][x].player === BLACK) {
               break;
             }
             var highlight = $scope.board[y + i][x];
             highlight.isChoice = true;
+            blackDefenseChoices.push(highlight);
           }
         }
       }
@@ -1301,12 +1521,14 @@ chessApp.controller("chessCtrl", function($scope) {
               }
               var highlight = $scope.board[y - i][x - i];
               highlight.isChoice = true;
+              blackDefenseChoices.push(highlight);
               break;
             } else if ($scope.board[y - i][x - i].player === BLACK) {
               break;
             }
             var highlight = $scope.board[y - i][x - i];
             highlight.isChoice = true;
+            blackDefenseChoices.push(highlight);
           }
         }
         //UP
@@ -1319,12 +1541,14 @@ chessApp.controller("chessCtrl", function($scope) {
               }
               var highlight = $scope.board[y - i][x];
               highlight.isChoice = true;
+              blackDefenseChoices.push(highlight);
               break;
             } else if ($scope.board[y - i][x].player === BLACK) {
               break;
             }
             var highlight = $scope.board[y - i][x];
             highlight.isChoice = true;
+            blackDefenseChoices.push(highlight);
           }
         }
         //UPPER RIGHT
@@ -1337,12 +1561,14 @@ chessApp.controller("chessCtrl", function($scope) {
               }
               var highlight = $scope.board[y - i][x + i];
               highlight.isChoice = true;
+              blackDefenseChoices.push(highlight);
               break;
             } else if ($scope.board[y - i][x + i].player === BLACK) {
               break;
             }
             var highlight = $scope.board[y - i][x + i];
             highlight.isChoice = true;
+            blackDefenseChoices.push(highlight);
           }
         }
         //RIGHT
@@ -1355,12 +1581,14 @@ chessApp.controller("chessCtrl", function($scope) {
               }
               var highlight = $scope.board[y][x + i];
               highlight.isChoice = true;
+              blackDefenseChoices.push(highlight);
               break;
             } else if ($scope.board[y][x + i].player === BLACK) {
               break;
             }
             var highlight = $scope.board[y][x + i];
             highlight.isChoice = true;
+            blackDefenseChoices.push(highlight);
           }
         }
         //LOWER RIGHT
@@ -1373,12 +1601,14 @@ chessApp.controller("chessCtrl", function($scope) {
               }
               var highlight = $scope.board[y + i][x + i];
               highlight.isChoice = true;
+              blackDefenseChoices.push(highlight);
               break;
             } else if ($scope.board[y + i][x + i].player === BLACK) {
               break;
             }
             var highlight = $scope.board[y + i][x + i];
             highlight.isChoice = true;
+            blackDefenseChoices.push(highlight);
           }
         }
         //DOWN
@@ -1391,12 +1621,14 @@ chessApp.controller("chessCtrl", function($scope) {
               }
               var highlight = $scope.board[y + i][x];
               highlight.isChoice = true;
+              blackDefenseChoices.push(highlight);
               break;
             } else if ($scope.board[y + i][x].player === BLACK) {
               break;
             }
             var highlight = $scope.board[y + i][x];
             highlight.isChoice = true;
+            blackDefenseChoices.push(highlight);
           }
         }
         //LOWER LEFT
@@ -1409,12 +1641,14 @@ chessApp.controller("chessCtrl", function($scope) {
               }              
               var highlight = $scope.board[y + i][x - i];
               highlight.isChoice = true;
+              blackDefenseChoices.push(highlight);
               break;
             } else if ($scope.board[y + i][x - i].player === BLACK) {
               break;
             }
             var highlight = $scope.board[y + i][x - i];
             highlight.isChoice = true;
+            blackDefenseChoices.push(highlight);
           }
         }
         //LEFT
@@ -1427,12 +1661,14 @@ chessApp.controller("chessCtrl", function($scope) {
               }
               var highlight = $scope.board[y][x - i];
               highlight.isChoice = true;
+              blackDefenseChoices.push(highlight);
               break;
             } else if ($scope.board[y][x - i].player === BLACK) {
               break;
             }
             var highlight = $scope.board[y][x - i];
             highlight.isChoice = true;
+            blackDefenseChoices.push(highlight);
           }
         }
       }
@@ -1536,8 +1772,5 @@ chessApp.controller("chessCtrl", function($scope) {
     }
 
   }
-
-  
-
 
 });
