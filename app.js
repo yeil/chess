@@ -192,6 +192,7 @@ chessApp.controller("chessCtrl", function($scope, $timeout) {
         if (king.isCheck) {
           mateTest(king);
         }
+        checkTest();
       }
     }
   }
@@ -1772,5 +1773,24 @@ chessApp.controller("chessCtrl", function($scope, $timeout) {
     }
 
   }
+
+  function onReady(callback) {
+    var intervalID = window.setInterval(checkReady, 500);
+    function checkReady() {
+        if (document.getElementsByTagName('body')[0] !== undefined) {
+            window.clearInterval(intervalID);
+            callback.call(this);
+        }
+    }
+  }
+
+  function show(className, value) {
+      document.getElementsByClassName(className)[0].style.display = value ? 'block' : 'none';
+  }
+
+  onReady(function () {
+      show('game-container', true);
+      show('loading', false);
+  });
 
 });
