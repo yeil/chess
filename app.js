@@ -2,7 +2,7 @@
 var chessApp = angular.module("chessApp", []);
 
 // CONTROLLERS
-chessApp.controller("chessCtrl", function($scope, $timeout) {
+chessApp.controller("chessCtrl", function($scope, $timeout, $interval) {
   
   var WHITE = "White";
   var BLACK = "Black";
@@ -1775,10 +1775,10 @@ chessApp.controller("chessCtrl", function($scope, $timeout) {
   }
 
   function onReady(callback) {
-    var intervalID = window.setInterval(checkReady, 500);
+    var intervalID = $interval(checkReady, 500);
     function checkReady() {
         if (document.getElementsByTagName('body')[0] !== undefined) {
-            window.clearInterval(intervalID);
+            $interval.cancel(intervalID);
             callback.call(this);
         }
     }
